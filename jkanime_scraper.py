@@ -11,7 +11,8 @@ Per-series output layout:
   {series}/links.json            Signed direct URLs (expire). Use soon.
   {series}/progress.json         Checkpoint, written per episode.
   {series}/download.sh           Generated wget/yt-dlp download script.
-  {series}/001.mp4, 002.mp4 ...  Downloaded episodes.
+  {series}/playlist.m3u          Episodes in numeric order.
+  {series}/1.mp4, 2.mp4 ...      Downloaded episodes.
 
 Usage:
   python jkanime_scraper.py --url https://jkanime.net/yugioh-duel-monsters-gx/1/
@@ -240,7 +241,7 @@ def generate_download_script(series: str, results: dict) -> Path:
     ]
     for ep, data in sorted(results.items(), key=lambda x: int(x[0])):
         n = int(ep)
-        fname = f"{n:03d}.mp4"
+        fname = f"{n}.mp4"  # simple numbering for easy playlist handling
         direct = data.get("direct_url")
         fb_url = data.get("fallback_url")
         fb_server = data.get("fallback_server", "")
@@ -264,6 +265,23 @@ def generate_download_script(series: str, results: dict) -> Path:
     script.write_text("\n".join(lines))
     script.chmod(0o755)
     return script
+
+
+def generate_playlist(series: str, results: dict) -> Path:
+    """Write an M3U playlist in true numeric episode order.
+
+    Robust against lexical filename sorting (1, 10, 2, ...): players follow
+    the explicit M3U order regardless of how the folder lists files.
+    """
+    d = series_dir(series)
+    lines = ["#EXTM3U", f"# {series}"]
+    for ep in sorted(results, key=int):
+        n = int(ep)
+        lines.append(f"#EXTINF:-1,{series} - {n}")
+        lines.append(f"{n}.mp4")
+    playlist = d / "playlist.m3u"
+    playlist.write_text("\n".join(lines) + "\n")
+    return playlist
 
 
 # --- orchestration -----------------------------------------------------------
@@ -307,6 +325,7 @@ def scrape(series: str, start: int, end: int, delay_min: float, delay_max: float
     (d / "links.json").write_text(json.dumps(direct_clean, indent=2, ensure_ascii=False))
 
     script = generate_download_script(series, results)
+    playlist = generate_playlist(series, results)
 
     fallback_eps = {
         ep: r["fallback_server"]
@@ -330,6 +349,7 @@ def scrape(series: str, start: int, end: int, delay_min: float, delay_max: float
     print(f"[primary] {d}/mediafire_pages.json")
     print(f"[links]   {d}/links.json")
     print(f"[script]  {script}")
+    print(f"[m3u]     {playlist}")
 
 
 def main():

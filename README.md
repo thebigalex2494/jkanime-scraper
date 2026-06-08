@@ -47,6 +47,12 @@ Signed links expire, so `mediafire_pages.json` is written **per episode**
 - [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) — fallback-host downloads
 
 ```bash
+./install.sh        # creates .venv, installs deps, checks wget/yt-dlp
+```
+
+Or manually:
+
+```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -60,7 +66,14 @@ python jkanime_scraper.py --url https://jkanime.net/yugioh-duel-monsters-gx/1/
 
 # Download everything that was resolved
 bash yugioh-duel-monsters-gx/download.sh
+
+# Play in numeric order (any M3U-aware player)
+mpv yugioh-duel-monsters-gx/playlist.m3u
 ```
+
+Episodes are saved with plain numeric names (`1.mp4`, `2.mp4`, ...). A
+`playlist.m3u` is generated in true numeric order, so playback is correct
+even though a folder lists `1.mp4, 10.mp4, 2.mp4` lexically.
 
 Manual range / explicit slug:
 
@@ -90,7 +103,8 @@ without re-scraping jkanime.
 ├── links.json             signed direct URLs (expire)
 ├── progress.json          full checkpoint
 ├── download.sh            generated wget/yt-dlp script
-└── 001.mp4, 002.mp4 ...   downloaded episodes
+├── playlist.m3u           episodes in numeric order
+└── 1.mp4, 2.mp4 ...       downloaded episodes
 ```
 
 ## Disclaimer

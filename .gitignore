@@ -21,6 +21,7 @@ mediafire_pages.json
 links.json
 progress.json
 download.sh
+playlist.m3u
 
 # OS
 .DS_Store
