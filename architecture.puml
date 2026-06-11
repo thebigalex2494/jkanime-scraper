@@ -1,0 +1,72 @@
+@startuml
+' --- IDENTITY REDIRECTION ---
+' This diagram uses the Central Command Global Style.
+' Path: tools/reporting/styles/cc_modern_theme.puml
+!include ../../tools/reporting/styles/cc_modern_theme.puml
+
+title Arquitectura Interna de jkanime Scraper (proj-037)
+
+box "Entorno de Usuario" #DEECF9
+    actor "Usuario" as U
+    participant "CLI Interface\\n(argparse)" as CLI
+end box
+
+box "Lógica del Scraper (jkanime_scraper.py)" #FFF4CE
+    participant "Core Engine\\n(httpx + re)" as S
+    participant "Checkpoint Manager\\n(progress.json)" as CK
+    database "Almacenamiento Local" as FS
+end box
+
+box "Servidores Externos" #FDE7E9
+    participant "jkanime.net" as JK
+    participant "Mediafire" as MF
+    participant "Fallback Servers\\n(mp4upload, etc)" as FB
+end box
+
+== FASE 1: INICIALIZACIÓN ==
+
+U -> CLI: Ejecuta python jkanime_scraper.py --url [URL]
+CLI -> S: Inicializa motor con argumentos
+S -> CK: Verifica estado previo (Resume)
+
+== FASE 2: SCRAPING DE EPISODIOS ==
+
+S -> JK: GET Episode HTML
+activate S
+JK --> S: HTML con 'var servers = [...]'
+S -> S: decode_servers() (Base64 decode)
+
+alt Mediafire Disponible (Prioridad 1)
+    S -> MF: GET Mediafire Page URL
+    MF --> S: Mediafire Direct URL (Signed)
+    S -> CK: Guarda enlace directo
+else Fallback yt-dlp
+    S -> S: pick_fallback()
+    S -> CK: Guarda URL de host (mp4upload, etc)
+end
+
+S -> CK: Actualiza progress.json
+deactivate S
+
+== FASE 3: GENERACIÓN DE ARTEFACTOS ==
+
+S -> FS: Genera download.sh (wget/yt-dlp)
+S -> FS: Genera links.json (Permanent + Temp)
+S -> FS: Genera playlist.m3u
+
+== FASE 4: DESCARGA (Ejecución de Usuario) ==
+
+U -> FS: bash download.sh
+activate FS
+FS -> MF: Download MP4
+MF --> FS: [1.mp4, 2.mp4...]
+deactivate FS
+
+legend bottom
+|= Componente |= SSoT / Función |
+| progress.json | Estado de extracción (Evita re-scraping) |
+| download.sh | Automatización de descargas con reintentos |
+| mediafire_pages.json | Enlaces permanentes para regenerar links expirados |
+endlegend
+
+@enduml

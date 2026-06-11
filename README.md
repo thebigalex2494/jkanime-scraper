@@ -30,7 +30,14 @@ jkanime episode HTML
    Mediafire direct URLs and `yt-dlp` for fallbacks, skipping files already
    present.
 
-### Why two URL sets?
+## Architecture
+
+The following diagram illustrates the complete workflow of the scraper, from URL identification to artifact generation:
+
+![Architecture Diagram](architecture.png)
+
+> **Note:** If you need to update the diagram, edit `architecture.puml` and run:
+> `java -jar ~/central_command/bin/plantuml.jar -tpng architecture.puml`
 
 | File | Lifetime | Purpose |
 |------|----------|---------|
